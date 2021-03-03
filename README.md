@@ -16,8 +16,6 @@
 <p float="left">
 <img width="300" src="https://github.com/popizdead/StocksYandex/blob/main/Img/gifs/SearchAndReview.gif"></img>
 <img width="300" src="https://github.com/popizdead/StocksYandex/blob/main/Img/gifs/ReviewScreen.gif"></img>
-</p>
-<p float="left">
 <img width="300" src="https://github.com/popizdead/StocksYandex/blob/main/Img/gifs/ReviewToFav.gif"></img>
 </p>
 
