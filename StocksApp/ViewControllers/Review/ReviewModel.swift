@@ -9,13 +9,13 @@ import Foundation
 import Charts
 import Alamofire
 
-//MARK:GRAPH SOURCE
+//MARK:SOURCE
 var reviewStock : Stock!
+var currentRequest : requestType!
+var buttonChoosed = UIButton()
 
 var dateGraphArray : [String] = []
 var valueGraphArray : [Double] = []
-
-var currentRequest : requestType!
 
 enum requestType {
     case week
@@ -23,22 +23,29 @@ enum requestType {
     case year
 }
 
-//Graph source
+//X labels array
 func createDescriptionGraphArray(from: [Int]) {
     dateGraphArray.removeAll()
+    let df = DateFormatter()
+    
     for element in from {
-        let df = DateFormatter()
+        let dateDay = Date(timeIntervalSince1970: TimeInterval.init(element))
+        
         if currentRequest == requestType.year {
             df.dateFormat = "MMM"
-        } else {
-            df.dateFormat = "dd"
+            dateGraphArray.append(df.string(from: dateDay))
         }
-        
-        let dateDay = Date(timeIntervalSince1970: TimeInterval.init(element))
-        dateGraphArray.append(df.string(from: dateDay))
+        else if currentRequest == requestType.month {
+            df.dateFormat = "dd"
+            dateGraphArray.append(df.string(from: dateDay))
+        }
+        else if currentRequest == requestType.week {
+            dateGraphArray.append(dateDay.nameOfDay())
+        }
     }
 }
 
+//Value array
 func createGraphDataArray() -> [ChartDataEntry] {
     var counter = 0
     var dataArray : [ChartDataEntry] = []
@@ -52,10 +59,12 @@ func createGraphDataArray() -> [ChartDataEntry] {
     return dataArray
 }
 
-//MARK:GRAPH DESIGN
+//MARK:GRAPH
 extension ReviewViewController {
+    //Data
     func updateGraph() {
         let dataSet = LineChartDataSet(entries: createGraphDataArray(), label: "Earning")
+        graphView.xAxis.valueFormatter = IndexAxisValueFormatter(values: dateGraphArray)
         
         dataSet.colors = [UIColor.black]
         dataSet.highlightEnabled = false
@@ -69,14 +78,9 @@ extension ReviewViewController {
         let data = LineChartData(dataSet: dataSet)
         
         graphView.data = data
-        
-        graphView.xAxis.valueFormatter = IndexAxisValueFormatter(values: dateGraphArray)
-        graphView.leftAxis.valueFormatter = YAxisValueFormatter()
-        graphView.xAxis.forceLabelsEnabled = false
-        graphView.fitScreen()
     }
     
-    //Graph design
+    //Design
     func setGraphDesign() {
         graphView.noDataText = "Can't find data of this time"
         graphView.rightAxis.enabled = false
@@ -90,60 +94,14 @@ extension ReviewViewController {
         
         graphView.leftAxis.drawGridLinesEnabled = false
         
-        graphView.xAxis.labelFont = UIFont(name: "AvenirNext-Regular", size: 13.0)!
-        graphView.leftAxis.labelFont = UIFont(name: "AvenirNext-Regular", size: 13.0)!
-    }
-    
-    //MARK:GRAPH NETWORK
-    //Preparing request
-    func graphDataRequest(to: requestType) {
-        self.hideGraph(hide: true)
-        let today = Date()
-        var res = "D"
-        currentRequest = to
+        graphView.xAxis.labelFont = UIFont(name: "AvenirNext-Medium", size: 13.0)!
+        graphView.leftAxis.labelFont = UIFont(name: "AvenirNext-Medium", size: 13.0)!
         
-        var firstDay = TimeInterval()
-        var lastDay = TimeInterval()
         
-        switch to {
-            case .month:
-                firstDay = today.startOfMonth.timeIntervalSince1970
-                lastDay = today.endOfMonth.timeIntervalSince1970
-                
-            case .week:
-                let weekArray = today.daysOfWeek()
-                
-                firstDay = weekArray.first!.timeIntervalSince1970
-                lastDay = weekArray.last!.timeIntervalSince1970
-                
-            case .year:
-                let year = Calendar.current.component(.year, from: Date())
-                let firstDayOfNextYear = Calendar.current.date(from: DateComponents(year: year + 1, month: 1, day: 1))!
-
-                firstDay = Calendar.current.date(from: DateComponents(year: year, month: 1, day: 1))!.timeIntervalSince1970
-                lastDay = Calendar.current.date(byAdding: .day, value: -1, to: firstDayOfNextYear)!.timeIntervalSince1970
-                res = "M"
-        }
-        
-        let url = URL(string: "https://finnhub.io/api/v1/stock/candle?symbol=\(reviewStock.ticker)&resolution=\(res)&from=\(Int(firstDay))&to=\(Int(lastDay))&token=c0m006f48v6p8fvj10hg")!
-        makeStatRequest(url: url)
-    }
-    
-    //Request
-    func makeStatRequest(url: URL) {
-        AF.request(url).responseJSON { (response) in
-            if let responseDictionary = response.value as? [String:Any] {
-                if let timeArray = responseDictionary["t"] as? [Int] {
-                    createDescriptionGraphArray(from: timeArray)
-                }
-                if let valueArray = responseDictionary["c"] as? [Double] {
-                    valueGraphArray = valueArray
-                }
-                self.setGraphDesign()
-                self.updateGraph()
-                self.hideGraph(hide: false)
-            }
-        }
+        graphView.xAxis.avoidFirstLastClippingEnabled = true
+        graphView.leftAxis.valueFormatter = YAxisValueFormatter()
+        graphView.xAxis.forceLabelsEnabled = false
+        graphView.fitScreen()
     }
 }
 

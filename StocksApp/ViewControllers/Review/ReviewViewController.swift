@@ -35,11 +35,7 @@ class ReviewViewController: UIViewController, ChartViewDelegate {
     //Logo
     @IBOutlet weak var logoImg: UIImageView!
     @IBOutlet weak var placeholderLogo: UILabel!
-    
-    @IBOutlet weak var anotherCoonstraint: NSLayoutConstraint!
-    
-    var buttonChoosed = UIButton()
-    
+
     //MARK:VIEW LOAD
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -54,9 +50,7 @@ class ReviewViewController: UIViewController, ChartViewDelegate {
     
     //MARK:UI SETTING
     func checkForFavouriteButton() {
-        if favoriteStocksArray.contains(where: { (stock) -> Bool in
-            return stock.ticker == reviewStock.ticker
-        }) {
+        if favoriteStocksArray.contains(where: {$0.ticker == reviewStock.ticker }) {
             self.favButton.setImage(UIImage(named: "favButtonChoosed"), for: .normal)
         } else {
             self.favButton.setImage(UIImage(named: "favButton"), for: .normal)
@@ -123,22 +117,6 @@ class ReviewViewController: UIViewController, ChartViewDelegate {
         self.indicator.animateHidding(hidding: !hide)
     }
     
-    func longBgView(long: Bool) {
-        if long {
-            self.graphButtonStack.animateHidding(hidding: true)
-            UIView.animate(withDuration: 0.2) {
-                self.anotherCoonstraint.constant = self.anotherCoonstraint.constant - self.graphButtonStack.frame.height
-                self.view.layoutIfNeeded()
-            }
-        } else {
-            UIView.animate(withDuration: 0.2) {
-                self.anotherCoonstraint.constant = self.anotherCoonstraint.constant + self.graphButtonStack.frame.height
-                self.view.layoutIfNeeded()
-            }
-            self.graphButtonStack.animateHidding(hidding: false)
-        }
-    }
-    
     //MARK:BUTTONS
 
     @IBAction func backButtonTapped(_ sender: UIButton) {
@@ -162,17 +140,7 @@ class ReviewViewController: UIViewController, ChartViewDelegate {
     
     //Favorite button
     @IBAction func favButtonTapped(_ sender: UIButton) {
-        if favoriteStocksArray.contains(where: { (stock) -> Bool in
-            return stock.ticker == reviewStock.ticker
-        }) {
-            self.favButton.setImage(UIImage(named: "favButton"), for: .normal)
-            favoriteStocksArray = favoriteStocksArray.filter { $0.ticker != reviewStock.ticker }
-            deleteFavorite(stock: reviewStock)
-        } else {
-            self.favButton.setImage(UIImage(named: "favButtonChoosed"), for: .normal)
-            favoriteStocksArray.append(reviewStock)
-            saveFavorite(stock: reviewStock)
-        }
+        favButtonAction(button: sender, stock: reviewStock)
     }
     
 }

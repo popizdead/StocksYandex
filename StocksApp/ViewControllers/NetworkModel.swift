@@ -12,7 +12,7 @@ let mboumKey = "GQZSmGtDxoRBkcHsi1ivfu3Q4tDD8CaY7umAovRXuHciNV1aLJ6atqbqWdot"
 let finSandKey = "sandbox_c0m006f48v6p8fvj10i0"
 let finKey = "c0m006f48v6p8fvj10hg"
 
-//MARK:STOCKS TRENDS
+//MARK:TRENDS
 func getStocksTrend() {
     let urlString = "https://mboum.com/api/v1/co/collections/?list=most_actives&start=1&apikey=\(mboumKey)"
     AF.request(urlString).responseJSON { (response) in
@@ -60,7 +60,7 @@ func getStockFromTrendsDict(dict: [String:Any]) -> Stock? {
 }
 
 
-//MARK: STOCKS SOURCE
+//MARK: STOCKS
 func getListOfAllStocks() {
     let urlString = "https://finnhub.io/api/v1/stock/symbol?exchange=US&token=\(finSandKey)"
     AF.request(urlString).responseJSON { (response) in
@@ -68,7 +68,7 @@ func getListOfAllStocks() {
             for stockDataElement in objectsArray {
                 if let stockData = stockDataElement as? [String:Any] {
                     if let stock = getStockDescriptionFromDict(dict: stockData) {
-                        descriptionStockArray.append(stock)
+                        listStockArray.append(stock)
                     }
                 }
             }
@@ -88,7 +88,7 @@ func getStockDescriptionFromDict(dict: [String:Any]) -> Stock? {
 }
 
 
-//MARK:STOCK NETWORK
+//MARK:STOCK DATA
 extension Stock {
     func downloadLogo() {
         AF.request(self.logoUrl!).response { (data) in
@@ -108,6 +108,9 @@ extension Stock {
                     if let prevPrice = jsonResult["pc"] as? Double {
                         if String(format: "%.2f", curPrice) == "0.00" {
                             showingStocksArray = showingStocksArray.filter({ (stock) -> Bool in
+                                stock.ticker != self.ticker
+                            })
+                            listStockArray = listStockArray.filter({ (stock) -> Bool in
                                 stock.ticker != self.ticker
                             })
                         } else {
@@ -135,6 +138,56 @@ extension Stock {
     }
 }
 
+//MARK:GRAPH
+extension ReviewViewController {
+    func graphDataRequest(to: requestType) {
+        self.hideGraph(hide: true)
+        
+        let today = Date()
+        var res = "D"
+        currentRequest = to
+        
+        var firstDay = TimeInterval()
+        var lastDay = TimeInterval()
+        
+        switch to {
+            case .month:
+                firstDay = today.startOfMonth.timeIntervalSince1970
+                lastDay = today.endOfMonth.timeIntervalSince1970
+                
+            case .week:
+                firstDay = today.startOfWeek(using: Calendar.current).timeIntervalSince1970
+                lastDay = today.timeIntervalSince1970
+            case .year:
+                let year = Calendar.current.component(.year, from: Date())
+                let firstDayOfNextYear = Calendar.current.date(from: DateComponents(year: year + 1, month: 1, day: 1))!
 
+                firstDay = Calendar.current.date(from: DateComponents(year: year, month: 1, day: 1))!.timeIntervalSince1970
+                lastDay = Calendar.current.date(byAdding: .day, value: -1, to: firstDayOfNextYear)!.timeIntervalSince1970
+                res = "M"
+        }
+        
+        let url = URL(string: "https://finnhub.io/api/v1/stock/candle?symbol=\(reviewStock.ticker)&resolution=\(res)&from=\(Int(firstDay))&to=\(Int(lastDay))&token=\(finKey)")!
+        makeStatRequest(url: url)
+    }
+    
+    func makeStatRequest(url: URL) {
+        AF.request(url).responseJSON { (response) in
+            if let responseDictionary = response.value as? [String:Any] {
+                if let timeArray = responseDictionary["t"] as? [Int] {
+                    createDescriptionGraphArray(from: timeArray)
+                }
+                if let valueArray = responseDictionary["c"] as? [Double] {
+                    valueGraphArray = valueArray
+                }
+                
+                self.setGraphDesign()
+                self.updateGraph()
+                
+                self.hideGraph(hide: false)
+            }
+        }
+    }
+}
 
 

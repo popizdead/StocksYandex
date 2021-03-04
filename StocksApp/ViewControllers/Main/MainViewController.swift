@@ -26,7 +26,6 @@ class MainViewController: UIViewController, UICollectionViewDelegate, UICollecti
     @IBOutlet weak var buttonsStack: UIStackView!
     @IBOutlet weak var bottomConstr: NSLayoutConstraint!
     
-    var hideState = Bool()
     var visibleBottomConstraint = CGFloat()
     
     //MARK:VIEW LOAD
@@ -48,7 +47,8 @@ class MainViewController: UIViewController, UICollectionViewDelegate, UICollecti
     
     func viewSetup() {
         hiddingKeyboardSetting()
-        navBgView.makeShadowAndRadius(opacity: 0.5, radius: 8)
+        
+        navBgView.makeShadowAndRadius(opacity: 0.5, radius: 10)
         visibleBottomConstraint = bottomConstr.constant
         
         stockCV.delegate = self
@@ -58,43 +58,47 @@ class MainViewController: UIViewController, UICollectionViewDelegate, UICollecti
     }
 
     //MARK:UI
-    func hideButtons(hide: Bool) {
+    func updateUI() {
+        updateShowingArray()
+        updateNavButtonsDesign()
+        self.stockCV.reloadData()
+    }
+    
+    func hideNavView(hide: Bool) {
         UIView.animate(withDuration: 0.2) {
-            if hide {
-                if self.hideState != true {
-                    self.buttonsStack.isHidden = true
-                    self.bottomConstr.constant = self.visibleBottomConstraint - self.buttonsStack.frame.height
-                }
-            } else {
-                if self.hideState == true {
-                    self.bottomConstr.constant = self.visibleBottomConstraint
-                    self.buttonsStack.isHidden = false
-                }
+            if hide && hideState != true {
+                self.bottomConstr.constant = self.visibleBottomConstraint - self.buttonsStack.frame.height
+            } else if !hide && hideState == true {
+                self.bottomConstr.constant = self.visibleBottomConstraint
             }
             self.view.layoutIfNeeded()
         }
+        buttonsStack.animateHidding(hidding: hide)
     }
     
-    func changeStateOfView(searching: Bool) {
-        if searching {
+    func changeStateOfView(isSearching: Bool) {
+        if isSearching {
+            currentState = navigationState.searching
+        } else {
+            currentState = navigationState.trends
+        }
+        
+        updateField(toSearching: isSearching)
+        hideNavView(hide: isSearching)
+        hideState = isSearching
+        
+        updateUI()
+    }
+    
+    func updateField(toSearching: Bool) {
+        if toSearching {
             fieldButton.setImage(UIImage(named: "cancel"), for: .normal)
             fieldButton.setBackgroundImage(nil, for: .normal)
-            currentState = navigationState.searching
-            hideButtons(hide: true)
-            hideState = true
         } else {
             fieldButton.setImage(nil, for: .normal)
             fieldButton.setBackgroundImage(UIImage(named: "Search"), for: .normal)
             self.searchField.text = ""
             view.endEditing(true)
-            
-            currentState = navigationState.trends
-            hideButtons(hide: false)
-            hideState = false
-            
-            updateShowingArray()
-            updateNavButtonsDesign()
-            self.stockCV.reloadData()
         }
     }
     
@@ -128,14 +132,12 @@ class MainViewController: UIViewController, UICollectionViewDelegate, UICollecti
             currentState = navigationState.trends
         }
         
-        updateShowingArray()
-        updateNavButtonsDesign()
-        self.stockCV.reloadData()
+        updateUI()
     }
     
     //Field button
     @IBAction func fieldButtonTapped(_ sender: UIButton) {
-        changeStateOfView(searching: false)
+        changeStateOfView(isSearching: false)
     }
     
     //MARK:SCROLL VIEW
@@ -143,22 +145,12 @@ class MainViewController: UIViewController, UICollectionViewDelegate, UICollecti
     var lastCellIsVisible = Bool()
     
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        if scrollView.contentOffset.y < 0 || lastCellIsVisible {
-            
-        } else {
-            //Scrolling up
-            if (self.lastContentOffset > scrollView.contentOffset.y) {
-                if currentState != navigationState.searching {
-                    hideButtons(hide: false)
-                    hideState = false
-                }
+        if scrollView.contentOffset.y > 0 && !lastCellIsVisible {
+            if currentState != navigationState.searching {
+                let scrollingDown = self.lastContentOffset < scrollView.contentOffset.y
+                hideNavView(hide: scrollingDown)
+                hideState = scrollingDown
             }
-            //Scrolling down
-            else if (self.lastContentOffset < scrollView.contentOffset.y) {
-                hideButtons(hide: true)
-                hideState = true
-            }
-
             self.lastContentOffset = scrollView.contentOffset.y
         }
     }
@@ -174,22 +166,23 @@ class MainViewController: UIViewController, UICollectionViewDelegate, UICollecti
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = stockCV.dequeueReusableCell(withReuseIdentifier: "stockCell", for: indexPath) as! StockCollectionViewCell
-        let stock = showingStocksArray[indexPath.row]
-        
-        cell.cellStock = stock
+    
+        cell.cellStock = showingStocksArray[indexPath.row]
         cell.setDesign()
         
         return cell
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        reviewStock = showingStocksArray[indexPath.row]
-        self.performSegue(withIdentifier: "toReview", sender: self)
+        if showingStocksArray[indexPath.row].currentPrice != nil {
+            reviewStock = showingStocksArray[indexPath.row]
+            self.performSegue(withIdentifier: "toReview", sender: self)
+        }
     }
     
     //MARK: SEARCH FIELD
     @IBAction func fieldBegin(_ sender: UITextField) {
-        changeStateOfView(searching: true)
+        changeStateOfView(isSearching: true)
     }
     
     @IBAction func fieldChanged(_ sender: UITextField) {

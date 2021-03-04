@@ -46,3 +46,16 @@ class Stock {
     }
 }
 
+func favButtonAction(button: UIButton, stock: Stock) {
+    if favoriteStocksArray.contains(where: {$0.ticker == stock.ticker }) {
+        button.setImage(UIImage(named: "favButton"), for: .normal)
+        favoriteStocksArray = favoriteStocksArray.filter { $0.ticker != stock.ticker }
+        deleteFavorite(stock: stock)
+    } else {
+        button.setImage(UIImage(named: "favButtonChoosed"), for: .normal)
+        favoriteStocksArray.append(stock)
+        saveFavorite(stock: stock)
+    }
+    
+}
+

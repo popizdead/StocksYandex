@@ -22,17 +22,7 @@ class StockCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var favButton: UIButton!
     
     @IBAction func favButtonTapped(_ sender: UIButton) {
-        if favoriteStocksArray.contains(where: { (stock) -> Bool in
-            return stock.ticker == self.cellStock.ticker
-            }) {
-            self.favButton.setImage(UIImage(named: "favButton"), for: .normal)
-            favoriteStocksArray = favoriteStocksArray.filter { $0.ticker != self.cellStock.ticker }
-            deleteFavorite(stock: self.cellStock)
-        } else {
-            self.favButton.setImage(UIImage(named: "favButtonChoosed"), for: .normal)
-            favoriteStocksArray.append(self.cellStock)
-            saveFavorite(stock: self.cellStock)
-        }
+        favButtonAction(button: sender, stock: self.cellStock)
         updateShowingArray()
     }
     
@@ -50,13 +40,7 @@ class StockCollectionViewCell: UICollectionViewCell {
         nameLbl.text = cellStock.name
         tickerLbl.text = cellStock.ticker
         
-        if let growthCell = cellStock.isGrowth {
-            if growthCell {
-                difLbl.textColor = .systemGreen
-            } else {
-                difLbl.textColor = .red
-            }
-        }
+        fillLabels()
         
         if cellStock.currentPrice != nil {
             loadingIndicator.animateHidding(hidding: true)
@@ -70,6 +54,17 @@ class StockCollectionViewCell: UICollectionViewCell {
             
             priceLbl.text = ""
             difLbl.text = ""
+        }
+    }
+    
+    
+    func fillLabels() {
+        if let growthCell = cellStock.isGrowth {
+            if growthCell {
+                difLbl.textColor = .systemGreen
+            } else {
+                difLbl.textColor = .red
+            }
         }
     }
     
@@ -87,9 +82,7 @@ class StockCollectionViewCell: UICollectionViewCell {
     }
     
     func updateButton() {
-        if favoriteStocksArray.contains(where: { (stock) -> Bool in
-            return stock.ticker == cellStock.ticker
-        }) {
+        if favoriteStocksArray.contains(where: {$0.ticker == cellStock.ticker }) {
             favButton.setImage(UIImage(named: "favButtonChoosed"), for: .normal)
         } else {
             favButton.setImage(UIImage(named: "favButton"), for: .normal)

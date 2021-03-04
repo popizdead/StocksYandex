@@ -10,9 +10,11 @@ import UIKit
 import CoreData
 
 //MARK: SOURCE
+
 //State
 var sourceSetted = false
 var currentState = navigationState.trends
+var hideState = Bool()
 
 enum navigationState {
     case searching
@@ -22,29 +24,27 @@ enum navigationState {
 
 //Arrays
 var showingStocksArray : [Stock] = []
+var listStockArray : [Stock] = []
 
 var favoriteStocksArray : [Stock] = []
 var trendsStocksArray : [Stock] = []
-var searchStocksArray : [Stock] = []
-
-var coreFavoriteStocks : [StockItem] = []
 var cashedImageDict : [String:UIImage] = [:]
-var descriptionStockArray : [Stock] = []
+
 
 //Update source arrays
 func searchForStock(text: String) {
-    searchStocksArray.removeAll()
-    let searchingNameArray = descriptionStockArray.filter({$0.ticker.lowercased().contains(text) || $0.name.lowercased().contains(text) })
+    showingStocksArray.removeAll()
+    let searchingNameArray = listStockArray.filter({$0.ticker.lowercased().contains(text) || $0.name.lowercased().contains(text) })
     for index in Range(0...5) {
         if index <= searchingNameArray.count - 1 {
             let stock = searchingNameArray[index]
             stock.getData()
-            searchStocksArray.append(stock)
+            showingStocksArray.append(stock)
         } else {
-            continue
+            break
         }
     }
-    updateShowingArray()
+    sourceSetted = true
 }
 
 func updateShowingArray() {
@@ -52,8 +52,6 @@ func updateShowingArray() {
         showingStocksArray = favoriteStocksArray
     } else if currentState == navigationState.trends {
         showingStocksArray = trendsStocksArray
-    } else if currentState == navigationState.searching {
-        showingStocksArray = searchStocksArray
     }
     sourceSetted = true
 }
@@ -74,32 +72,22 @@ func deleteFavorite(stock: Stock) {
         }
     }
     
-    do {
-        try context.save()
-    } catch {
-        
-    }
-    
+    do { try context.save() }
+    catch {}
 }
 
 func saveFavorite(stock: Stock) {
     let appDelegate = UIApplication.shared.delegate as! AppDelegate
     let context = appDelegate.persistentContainer.viewContext
     
-    guard let entity = NSEntityDescription.entity(forEntityName: "StockItem", in: context) else {
-        return
-    }
-    
+    guard let entity = NSEntityDescription.entity(forEntityName: "StockItem", in: context) else { return }
     let stockObject = StockItem(entity: entity, insertInto: context)
     
     stockObject.name = stock.name
     stockObject.ticker = stock.ticker
     
-    do {
-        try context.save()
-    } catch {
-        
-    }
+    do { try context.save() }
+    catch {}
 }
 
 func getSavedFavorite() {
@@ -109,17 +97,12 @@ func getSavedFavorite() {
     let fetchRequest : NSFetchRequest<StockItem> = StockItem.fetchRequest()
     
     do {
-        coreFavoriteStocks = try context.fetch(fetchRequest)
-        convertToFavorite()
-    } catch {
-        
-    }
+        let coreFavoriteStocks = try context.fetch(fetchRequest)
+        for stockElement in coreFavoriteStocks {
+            let stock = Stock(ticker: stockElement.ticker!, name: stockElement.name!)
+            stock.getData()
+            favoriteStocksArray.append(stock)
+        }
+    } catch {}
 }
 
-func convertToFavorite() {
-    for stockElement in coreFavoriteStocks {
-        let stock = Stock(ticker: stockElement.ticker!, name: stockElement.name!)
-        stock.getData()
-        favoriteStocksArray.append(stock)
-    }
-}
